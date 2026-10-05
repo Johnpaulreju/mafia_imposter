@@ -44,6 +44,37 @@ export function kickPlayer(state: GameState, hostSessionId: string, playerId: st
   state.version++; return state;
 }
 
+export function migrateHost(state: GameState, disconnectingPlayerId: string): boolean {
+  const currentHost = state.players.find((p) => p.isHost);
+  if (!currentHost || currentHost.id !== disconnectingPlayerId) return false;
+
+  // Find most eligible new host: connected, alive, longest in room
+  const eligible = state.players.filter((p) => p.id !== disconnectingPlayerId && p.connected);
+  if (eligible.length === 0) return false;
+
+  // Prefer alive players, fallback to any connected player
+  const newHost = eligible.filter((p) => p.status === "ALIVE")[0] || eligible[0];
+  if (!newHost) return false;
+
+  currentHost.isHost = false;
+  newHost.isHost = true;
+  state.version++;
+  return true;
+}
+
+export function handlePlayerDisconnect(state: GameState, playerId: string): void {
+  const player = state.players.find((p) => p.id === playerId);
+  if (!player) return;
+
+  player.connected = false;
+  state.version++;
+
+  // Only migrate host during lobby phase
+  if (state.phase === "LOBBY") {
+    migrateHost(state, playerId);
+  }
+}
+
 function assignRoles(state: GameState) {
   const shuffled = [...state.players].sort(() => randomInt(0, 2) - 1);
   // Soft fairness: recently surviving Mafia are not hard-blocked, but random shuffle remains authoritative.

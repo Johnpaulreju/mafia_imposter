@@ -4,7 +4,8 @@ import { WebSocketServer } from "ws";
 import { getSession } from "./lib/game-store.ts";
 import { dispatchAction, getStateForSession } from "./lib/server-actions.ts";
 import { publicSnapshot } from "./lib/safe-state.ts";
-import { tickRoom } from "./lib/game-engine.ts";
+import { tickRoom, handlePlayerDisconnect } from "./lib/game-engine.ts";
+import { saveGame } from "./lib/game-store.ts";
 
 const dev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT || 3000);
@@ -23,7 +24,7 @@ wss.on("connection", async(ws,req)=>{
   ws.sessionId=sessionId; ws.roomId=session.roomId; if(!clients.has(session.roomId)) clients.set(session.roomId,new Set()); clients.get(session.roomId).add(ws);
   const state=await getStateForSession(sessionId); if(state) ws.send(JSON.stringify({type:"snapshot",data:publicSnapshot(state,sessionId)}));
   ws.on("message",async raw=>{try{const msg=JSON.parse(raw.toString());if(msg.type!=="action")return;const nextState=await dispatchAction(sessionId,msg.action||{});if(nextState) await broadcast(session.roomId,nextState);}catch(e){ws.send(JSON.stringify({type:"error",message:e instanceof Error?e.message:"Action failed"}));}});
-  ws.on("close",()=>clients.get(session.roomId)?.delete(ws));
+  ws.on("close",async()=>{clients.get(session.roomId)?.delete(ws);const state=await getStateForSession(sessionId);if(state&&session.playerId){handlePlayerDisconnect(state,session.playerId);await saveGame(state);await broadcast(session.roomId,state);}});
 });
 setInterval(async()=>{ for(const [roomId] of clients){ const state=await tickRoom(roomId); if(state) await broadcast(roomId,state); } },250);
 server.listen(port,()=>console.log(`Mafia Night running on http://localhost:${port}`));
