@@ -106,14 +106,14 @@ function startCountdown(state: GameState) {
   state.phase = "COUNTDOWN"; state.phaseStartedAt = Date.now(); state.phaseEndsAt = Date.now() + 3000; state.version++;
 }
 
-export function advancePhase(state: GameState) {
+export async function advancePhase(state: GameState) {
   const now = Date.now();
   if (!state.phaseEndsAt || now < state.phaseEndsAt) return false;
   switch (state.phase) {
     case "COUNTDOWN":
       state.phase = "ROLE_REVEAL"; state.phaseStartedAt = now; state.phaseEndsAt = now + 3500; state.version++; return true;
     case "ROLE_REVEAL": return startRound(state);
-    case "ASSASSINATION": return finishAssassination(state);
+    case "ASSASSINATION": return await finishAssassination(state);
     case "DEATH_REVEAL": return startDiscussion(state);
     case "DISCUSSION": return startVoting(state);
     case "VOTING": return finishVoting(state);
@@ -226,7 +226,8 @@ export function completeTask(state: GameState, sessionId: string, score: number,
 export async function tickRoom(roomId: string) {
   const state = await getGame(roomId); if (!state) return null;
   if (!state.phaseEndsAt || Date.now() < state.phaseEndsAt) return state;
-  await advancePhase(state);
-  if (state.phase === "GAME_OVER" && !state.dbPersistedAt) { try { await persistMatch(state); state.dbPersistedAt = Date.now(); } catch {} }
-  await saveGame(state); return state;
+  const advanced = await advancePhase(state);
+  if (advanced && state.phase === "GAME_OVER" && !state.dbPersistedAt) { try { await persistMatch(state); state.dbPersistedAt = Date.now(); } catch {} }
+  if (advanced) await saveGame(state);
+  return state;
 }
