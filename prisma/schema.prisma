@@ -1,0 +1,2 @@
+// Reference-only schema documentation.
+// The actual starter uses SQL migrations with the `postgres` client so it works directly with Neon.
