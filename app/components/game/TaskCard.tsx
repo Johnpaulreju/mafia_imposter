@@ -11,7 +11,7 @@ export function TaskCard({
 }: {
   task: ClientSnapshot["tasks"][string] | undefined;
   done: boolean;
-  onDone: () => void;
+  onDone: (answer: unknown, timing: number) => void;
 }) {
   const [score, setScore] = useState(0);
   const [memory, setMemory] = useState<number[]>([]);
@@ -22,6 +22,7 @@ export function TaskCard({
   const [safe, setSafe] = useState<number[]>([]);
   const [tiles, setTiles] = useState<number[]>([]);
   const [changed, setChanged] = useState(4);
+  const [startTime] = useState(Date.now());
 
   useEffect(() => {
     if (task?.game === "MEMORY_FLASH") {
@@ -40,8 +41,11 @@ export function TaskCard({
     }
   }, [task?.game]);
 
-  const finish = () => {
-    if (!done) onDone();
+  const finish = (answer: unknown) => {
+    if (!done) {
+      const timing = Date.now() - startTime;
+      onDone(answer, timing);
+    }
   };
 
   if (!task) return null;
@@ -71,9 +75,11 @@ export function TaskCard({
           ))}
           <button
             onClick={() => {
-              if (score >= 4) finish();
-              else {
-                setScore(score + 1);
+              const newScore = score + 1;
+              setScore(newScore);
+              if (newScore >= 5) {
+                finish(5);
+              } else {
                 setTarget({
                   x: 8 + Math.random() * 84,
                   y: 8 + Math.random() * 84,
@@ -100,8 +106,11 @@ export function TaskCard({
           <button
             onClick={() => {
               const good = Math.random() > 0.35;
-              if (good) finish();
-              else setPulse((v) => !v);
+              if (good) {
+                finish({ timing: Date.now() - startTime });
+              } else {
+                setPulse((v) => !v);
+              }
             }}
             className={`grid h-40 w-40 place-items-center rounded-full border-4 ${
               pulse
@@ -132,9 +141,7 @@ export function TaskCard({
                 const next = [...input, i];
                 setInput(next);
                 if (next.length === memory.length) {
-                  next.every((v, j) => v === memory[j])
-                    ? finish()
-                    : setInput([]);
+                  finish(next);
                 }
               }}
               className="h-24 rounded-2xl border border-white/10 bg-white/[.04] text-2xl hover:bg-white/10"
@@ -164,7 +171,7 @@ export function TaskCard({
                 if (!wire.includes(i)) {
                   const next = [...wire, i];
                   setWire(next);
-                  if (next.length === 4) finish();
+                  if (next.length === 4) finish(next);
                 }
               }}
               className={`rounded-2xl border p-6 text-center ${
@@ -200,9 +207,7 @@ export function TaskCard({
                 const next = [...input, n];
                 setInput(next);
                 if (next.length === 4) {
-                  next.every((v, j) => v === safe[j])
-                    ? finish()
-                    : setInput([]);
+                  finish(next);
                 }
               }}
               className="rounded-xl border border-white/10 bg-white/[.03] p-3 font-mono hover:bg-white/10"
@@ -221,8 +226,7 @@ export function TaskCard({
           <button
             key={i}
             onClick={() => {
-              if (i === changed) finish();
-              else setChanged(Math.floor(Math.random() * 9));
+              finish(i);
             }}
             className="aspect-square rounded-2xl border border-white/10 bg-white/[.03] text-3xl hover:bg-white/10"
           >

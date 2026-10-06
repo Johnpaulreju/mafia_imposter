@@ -157,11 +157,11 @@ export function Game({
                   <TaskCard
                     task={task}
                     done={taskDone || !!task?.completed}
-                    onDone={() => {
+                    onDone={(answer, timing) => {
                       setTaskDone(true);
                       send("COMPLETE_TASK", {
-                        score: 80 + Math.floor(Math.random() * 20),
-                        accuracy: 80 + Math.floor(Math.random() * 20),
+                        answer,
+                        timing,
                       });
                     }}
                   />

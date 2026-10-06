@@ -4,6 +4,7 @@ import { getGame, saveGame } from "./game-store";
 import { id, roomCode } from "./id";
 import { generateStory } from "./story";
 import { persistMatch } from "./persistence";
+import { generateTaskAnswer, validateTaskCompletion } from "./task-validator";
 import type { GameState, MatchConfig, Player, Role, TaskGame } from "./types";
 
 export function validateConfig(config: Partial<MatchConfig>): MatchConfig {
@@ -128,7 +129,12 @@ function startRound(state: GameState) {
   state.round += 1; state.phase = "ASSASSINATION"; state.phaseStartedAt = Date.now(); state.phaseEndsAt = Date.now() + state.config.assassinationTime * 1000;
   state.currentVictimId = undefined; state.eliminatedThisRound = undefined; state.votes = {}; state.tieCandidates = [];
   state.tasks = {};
-  for (const p of state.players.filter((p) => p.status === "ALIVE")) state.tasks[p.id] = { playerId: p.id, game: chooseTask(p.id, state.round), startedAt: Date.now(), completed: false };
+  const now = Date.now();
+  for (const p of state.players.filter((p) => p.status === "ALIVE")) {
+    const game = chooseTask(p.id, state.round);
+    const answer = generateTaskAnswer(game, now);
+    state.tasks[p.id] = { playerId: p.id, game, startedAt: now, completed: false, answer };
+  }
   state.version++; return true;
 }
 
@@ -215,12 +221,28 @@ function finishEliminationReveal(state: GameState) {
 
 function continueOrFinish(state: GameState) { return startRound(state); }
 
-export function completeTask(state: GameState, sessionId: string, score: number, accuracy: number) {
+export function completeTask(
+  state: GameState,
+  sessionId: string,
+  clientAnswer: unknown,
+  clientTiming: number
+) {
   if (state.phase !== "ASSASSINATION") throw new Error("Task is not active");
-  const player = state.players.find((p) => p.sessionId === sessionId); if (!player || player.status !== "ALIVE") throw new Error("You cannot complete this task");
-  const task = state.tasks[player.id]; if (!task) throw new Error("Task not found");
+  const player = state.players.find((p) => p.sessionId === sessionId);
+  if (!player || player.status !== "ALIVE") throw new Error("You cannot complete this task");
+  const task = state.tasks[player.id];
+  if (!task) throw new Error("Task not found");
   if (task.completed) throw new Error("Task already completed");
-  task.completed = true; task.completedAt = Date.now(); task.score = Math.max(0, Math.min(100, score)); task.accuracy = Math.max(0, Math.min(100, accuracy)); state.version++; return state;
+
+  // Validate task completion
+  const validation = validateTaskCompletion(task, clientAnswer, clientTiming);
+  
+  task.completed = true;
+  task.completedAt = Date.now();
+  task.score = Math.max(0, Math.min(100, Math.floor(validation.score)));
+  task.accuracy = Math.max(0, Math.min(100, Math.floor(validation.accuracy)));
+  state.version++;
+  return state;
 }
 
 export async function tickRoom(roomId: string) {

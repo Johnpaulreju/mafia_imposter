@@ -57,6 +57,7 @@ export interface TaskState {
   score?: number;
   accuracy?: number;
   completed: boolean;
+  answer?: unknown;
 }
 
 export interface StoryState {

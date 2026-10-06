@@ -77,7 +77,7 @@ export async function dispatchAction(sessionId: string, action: { type: string; 
       state.config = validateConfig((action.payload?.config ?? {}) as Partial<MatchConfig>); state.version++; break;
     }
     case "SELECT_TARGET": await selectTarget(state, sessionId, String(action.payload?.targetId)); break;
-    case "COMPLETE_TASK": completeTask(state, sessionId, Number(action.payload?.score ?? 0), Number(action.payload?.accuracy ?? 0)); break;
+    case "COMPLETE_TASK": completeTask(state, sessionId, action.payload?.answer, Number(action.payload?.timing ?? 0)); break;
     case "CAST_VOTE": castVote(state, sessionId, action.payload?.targetId ? String(action.payload.targetId) : null); break;
     default: throw new Error(`Unknown action: ${action.type}`);
   }
