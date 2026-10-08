@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "tsx --env-file-if-exists=.env server.mjs",
     "start:web": "next start",
-    "start:realtime": "tsx --env-file-if-exists=.env server.mjs",
+    "start:realtime": "tsx server/realtime.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
