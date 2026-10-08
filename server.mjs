@@ -16,25 +16,25 @@ const server = createServer(async (req,res)=>{
   try { await handle(req,res); } catch(e){ res.statusCode=500; res.end("Internal error"); }
 });
 
-// Handle WebSocket upgrades
+const wss = new WebSocketServer({ noServer: true });
+const clients = new Map();
+
+// Handle all WebSocket upgrades
 server.on("upgrade", (req, socket, head) => {
   // Let Next.js handle HMR WebSocket
   if (req.url?.startsWith("/_next/hmr")) {
     app.getUpgradeHandler()(req, socket, head);
+    return;
   }
-  // Our game WebSocket is handled separately below
-});
-
-const wss = new WebSocketServer({ noServer: true });
-const clients = new Map();
-
-// Handle game WebSocket upgrades
-server.on("upgrade", (req, socket, head) => {
+  // Handle game WebSocket
   if (req.url?.startsWith("/api/ws")) {
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("connection", ws, req);
     });
+    return;
   }
+  // Ignore other upgrade requests
+  socket.destroy();
 });
 
 const broadcast = async (roomId,state)=>{ for(const ws of clients.get(roomId)||[]){ if(ws.readyState===1){ const s=await getSession(ws.sessionId); if(s) ws.send(JSON.stringify({type:"snapshot",data:publicSnapshot(state,ws.sessionId)})); } } };
