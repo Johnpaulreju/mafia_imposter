@@ -157,16 +157,118 @@ export async function runIntegrationTests(
 }
 
 async function runScenario(scenario: TestScenario): Promise<boolean> {
-  // Placeholder for actual test execution
-  // In production, this would:
-  // 1. Create a test room
-  // 2. Add test players
-  // 3. Start match
-  // 4. Simulate game flow
-  // 5. Verify outcome
-  
-  // For now, return true (tests would be implemented via E2E framework like Playwright)
-  return true;
+  try {
+    // Import required functions for testing
+    const { newRoom, startMatch, advancePhase, completeTask, castVote, selectTarget } = await import('./game-engine');
+    const { id } = await import('./id');
+
+    // 1. Create test room
+    const state = newRoom({
+      name: `Test_${scenario.name}`,
+      avatarId: '1',
+      sessionId: id('session'),
+    });
+
+    // 2. Add test players (all connected for testing)
+    for (let i = 1; i < scenario.players; i++) {
+      const { addPlayer } = await import('./game-engine');
+      addPlayer(state, {
+        name: `Player_${i}`,
+        avatarId: String((i % 8) + 1),
+        sessionId: id('session'),
+      });
+      state.players[i].connected = true;
+    }
+
+    // 3. Configure match
+    state.config.imposters = scenario.imposters;
+    state.config.rounds = scenario.maxRounds;
+    state.config.assassinationTime = 2000;
+
+    // 4. Start match
+    startMatch(state, state.players[0].sessionId);
+    if (state.phase !== 'COUNTDOWN') throw new Error('Failed to start match');
+
+    // 5. Simulate game flow (basic validation)
+    let iterations = 0;
+    const maxIterations = 50; // Prevent infinite loops
+
+    while (iterations < maxIterations) {
+      iterations++;
+      const prevPhase = state.phase;
+
+      // Try to advance phase
+      await advancePhase(state);
+
+      // Handle phase-specific actions
+      const currentPhase = state.phase as string;
+
+      if (currentPhase.includes('ASSASSINATION')) {
+        // Mafia selects target if available
+        const mafia = state.players.find(p => p.role === 'IMPOSTER');
+        const victims = state.players.filter(p => p.role === 'VILLAGER' && p.status === 'ALIVE');
+        if (mafia && victims.length > 0) {
+          try {
+            await selectTarget(state, mafia.sessionId, victims[0].id);
+          } catch (e) {
+            // Ignore target selection errors in tests
+          }
+        }
+
+        // Villagers complete tasks
+        for (const player of state.players) {
+          if (player.role === 'VILLAGER' && player.status === 'ALIVE') {
+            try {
+              completeTask(state, player.sessionId, 'test', 3000);
+            } catch (e) {
+              // Ignore task errors
+            }
+          }
+        }
+      }
+
+      if (currentPhase.includes('VOTING')) {
+        // All alive players vote
+        for (const player of state.players.filter(p => p.status === 'ALIVE')) {
+          const validTargets = state.players.filter(
+            p => p.status === 'ALIVE' && p.id !== player.id
+          );
+          if (validTargets.length > 0) {
+            try {
+              castVote(state, player.sessionId, validTargets[0].id);
+            } catch (e) {
+              // Ignore vote errors
+            }
+          }
+        }
+      }
+
+      // Check if we've reached game over
+      if (currentPhase === 'GAME_OVER') {
+        break;
+      }
+
+      // Safety: if we're stuck in same phase, break
+      if (prevPhase === currentPhase && iterations > 5) {
+        break;
+      }
+    }
+
+    // 6. Verify basic outcome
+    if (!state.winner) {
+      throw new Error(`Game did not complete properly, winner: ${state.winner}`);
+    }
+
+    // Check roles assigned
+    if (!state.players.some(p => p.role === 'IMPOSTER')) {
+      throw new Error('No imposters assigned');
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`[Test ${scenario.name}]`, error instanceof Error ? error.message : String(error));
+    return false;
+  }
 }
 
 export function generateTestReport(results: TestResult[]): string {
