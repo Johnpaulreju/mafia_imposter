@@ -32,6 +32,7 @@ class WSClient {
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
+        console.log("[WS] Connected to:", wsUrl);
         this.isConnecting = false;
         this.reconnectDelay = 1000;
         this.flushQueue();
@@ -40,9 +41,12 @@ class WSClient {
       this.ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(ev.data);
+          console.log("[WS] Received:", msg.type);
           if (msg.type === "snapshot") {
+            console.log("[WS] Snapshot players:", msg.data?.players?.length);
             this.snapshotListeners.forEach((listener) => listener(msg.data));
           } else if (msg.type === "error") {
+            console.error("[WS] Error message:", msg.message);
             this.errorListeners.forEach((listener) => listener(msg.message));
           }
         } catch (e) {
@@ -51,12 +55,14 @@ class WSClient {
       };
 
       this.ws.onclose = () => {
+        console.log("[WS] Closed");
         this.isConnecting = false;
         this.ws = null;
         this.scheduleReconnect();
       };
 
-      this.ws.onerror = () => {
+      this.ws.onerror = (err) => {
+        console.error("[WS] Error:", err);
         this.isConnecting = false;
       };
     } catch (e) {

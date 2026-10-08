@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { Copy, Crown, Sparkles, House, Globe2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Copy, Crown, Sparkles, House, Globe2, X, Link2 } from "lucide-react";
 import { Button, Avatar } from "@/app/components/ui";
 import { Setting, NumberSetting } from "./utils";
 import type { ClientSnapshot, MatchConfig } from "@/lib/types";
@@ -23,12 +23,21 @@ export function Lobby({
   setError: (s: string) => void;
   roomCode: string;
 }) {
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const me = state.me;
   const isHost = !!me?.isHost;
-  const copy = () =>
-    navigator.clipboard?.writeText(
-      `${location.origin}/?room=${roomCode}`
-    );
+
+  const copyCode = async () => {
+    await navigator.clipboard?.writeText(roomCode);
+    setCopied("code");
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const copyLink = async () => {
+    await navigator.clipboard?.writeText(`${location.origin}/?room=${roomCode}`);
+    setCopied("link");
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   const set = (k: keyof MatchConfig, v: unknown) =>
     setConfig((c) => ({ ...c, [k]: v }));
@@ -45,22 +54,38 @@ export function Lobby({
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[.22em] text-zinc-500">
-              Mafia Night
+              Waiting Room
             </div>
-            <div className="mt-1 flex items-center gap-3">
+            <div className="mt-1 flex items-center gap-2">
               <span className="font-mono text-2xl font-bold tracking-widest">
                 {roomCode}
               </span>
               <button
-                onClick={copy}
-                className="rounded-lg border border-white/10 p-2 text-zinc-400 hover:text-white"
+                onClick={copyCode}
+                className={`rounded-lg border p-2 transition ${
+                  copied === "code"
+                    ? "border-emerald-400 bg-emerald-500/20 text-emerald-300"
+                    : "border-white/10 text-zinc-400 hover:text-white"
+                }`}
+                title="Copy room code"
               >
                 <Copy size={15} />
+              </button>
+              <button
+                onClick={copyLink}
+                className={`rounded-lg border p-2 transition ${
+                  copied === "link"
+                    ? "border-cyan-400 bg-cyan-500/20 text-cyan-300"
+                    : "border-white/10 text-zinc-400 hover:text-white"
+                }`}
+                title="Copy shareable link"
+              >
+                <Link2 size={15} />
               </button>
             </div>
           </div>
           <div className="rounded-full border border-emerald-400/20 bg-emerald-400/5 px-3 py-1.5 text-xs text-emerald-200">
-            Lobby · {state.players.length}/{state.config.maxPlayers}
+            Waiting · {state.players.length}/{state.config.maxPlayers}
           </div>
         </header>
 
@@ -213,10 +238,21 @@ export function Lobby({
                   />
                 </div>
 
-                <div className="flex gap-2">
-                  <Button variant="ghost" onClick={copy}>
-                    <Copy size={15} /> Share
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      onClick={copyCode}
+                    >
+                      <Copy size={15} /> {copied === "code" ? "Copied! ✓" : "Copy code"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={copyLink}
+                    >
+                      <Link2 size={15} /> {copied === "link" ? "Copied! ✓" : "Copy link"}
+                    </Button>
+                  </div>
                   <Button
                     onClick={() => send("START_MATCH")}
                     disabled={state.players.length < 4}
