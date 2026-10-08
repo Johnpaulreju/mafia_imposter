@@ -252,7 +252,27 @@ export async function tickRoom(roomId: string) {
   const state = await getGame(roomId); if (!state) return null;
   if (!state.phaseEndsAt || Date.now() < state.phaseEndsAt) return state;
   const advanced = await advancePhase(state);
-  if (advanced && state.phase === "GAME_OVER" && !state.dbPersistedAt) { try { await persistMatch(state); state.dbPersistedAt = Date.now(); } catch {} }
-  if (advanced) await saveGame(state);
+
+  // Persist incrementally at key transitions
+  if (advanced) {
+    await saveGame(state);
+    try {
+      // Persist to database after each phase transition and at game end
+      const shouldPersist = [
+        "COUNTDOWN", "ROLE_REVEAL", "ASSASSINATION",
+        "DEATH_REVEAL", "DISCUSSION", "VOTING",
+        "TIE_BREAK", "ELIMINATION_REVEAL", "ROUND_END", "GAME_OVER"
+      ].includes(state.phase);
+
+      if (shouldPersist && (!state.dbPersistedAt || Date.now() - (state.dbPersistedAt ?? 0) > 5000)) {
+        await persistMatch(state);
+        state.dbPersistedAt = Date.now();
+      }
+    } catch (e) {
+      // Persistence failure doesn't block game progression
+      console.error("[DB Persist] Error:", e instanceof Error ? e.message : String(e));
+    }
+  }
+
   return state;
 }
