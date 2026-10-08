@@ -112,6 +112,19 @@ export default function Home() {
     client.send({ type, actionId: actionId(), payload });
   };
 
+  // Leave room
+  const leaveRoom = () => {
+    const client = getWSClient();
+    client.close();
+    localStorage.removeItem("mafia_session");
+    setSessionId("");
+    setState(null);
+    setRoomCode("");
+    setMode("welcome");
+    setName("");
+    setAvatar("");
+  };
+
   // Show tutorial
   if (onboard) {
     return (
@@ -165,6 +178,7 @@ export default function Home() {
         error={error}
         setError={setError}
         roomCode={roomCode}
+        onLeave={leaveRoom}
       />
     );
   }

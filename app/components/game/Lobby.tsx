@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Crown, Sparkles, House, Globe2, X, Link2 } from "lucide-react";
+import { Copy, Crown, Sparkles, House, Globe2, X, Link2, LogOut } from "lucide-react";
 import { Button, Avatar } from "@/app/components/ui";
 import { Setting, NumberSetting } from "./utils";
 import type { ClientSnapshot, MatchConfig } from "@/lib/types";
@@ -14,6 +14,7 @@ export function Lobby({
   error,
   setError,
   roomCode,
+  onLeave,
 }: {
   state: ClientSnapshot;
   send: (t: string, p?: Record<string, unknown>) => void;
@@ -22,6 +23,7 @@ export function Lobby({
   error: string;
   setError: (s: string) => void;
   roomCode: string;
+  onLeave: () => void;
 }) {
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const me = state.me;
@@ -89,7 +91,7 @@ export function Lobby({
           </div>
         </header>
 
-        <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_360px] lg:h-[calc(100vh-200px)]">
           <section className="glass rounded-[28px] p-5 sm:p-7">
             <div className="mb-6 flex items-end justify-between">
               <div>
@@ -137,13 +139,14 @@ export function Lobby({
             </div>
           </section>
 
-          <aside className="glass rounded-[28px] p-5 sm:p-6">
-            <div className="mb-5 text-xs uppercase tracking-[.2em] text-zinc-500">
-              Match settings
-            </div>
+          <aside className="glass rounded-[28px] p-5 sm:p-6 overflow-y-auto flex flex-col">
+            <div className="flex-1 overflow-y-auto pr-2">
+              <div className="mb-5 text-xs uppercase tracking-[.2em] text-zinc-500">
+                Match settings
+              </div>
 
-            {isHost ? (
-              <div className="space-y-5">
+              {isHost ? (
+                <div className="space-y-5">
                 <Setting label="Play mode">
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -323,6 +326,16 @@ export function Lobby({
                 </div>
               </div>
             )}
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Button
+                variant="ghost"
+                onClick={onLeave}
+              >
+                <LogOut size={15} /> Leave room
+              </Button>
+            </div>
           </aside>
         </div>
       </div>
