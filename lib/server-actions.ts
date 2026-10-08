@@ -57,16 +57,26 @@ export async function dispatchAction(sessionId: string, action: { type: string; 
   const session = await getSession(sessionId); if (!session) throw new Error("Session expired");
   const state = await getGame(session.roomId); if (!state) throw new Error("Room not found");
 
-  // Check idempotency using actionId
+  // ATOMIC idempotency check and mark using Redis SET NX
   const actionIdempotencyKey = `mafia:action:${session.roomId}:${action.actionId}`;
+  let shouldProcess = true;
+
   if (action.actionId) {
     const { getRedis } = await import("./redis");
     const redis = getRedis();
     if (redis) {
-      const alreadyProcessed = await redis.get(actionIdempotencyKey);
-      if (alreadyProcessed) return state; // Already processed, return current state
+      const phaseTTL = Math.ceil((state.phaseEndsAt ?? Date.now() + 60000 - Date.now()) / 1000) + 30;
+      // SET NX = Set if Not eXists (atomic operation)
+      // Returns "OK" if key did NOT exist before (this is the first request)
+      const result = await redis.set(actionIdempotencyKey, "1", { nx: true, ex: Math.max(10, phaseTTL) });
+      shouldProcess = result === "OK" || result === null;
+      if (!shouldProcess) {
+        return state; // Already processed, return current state without reprocessing
+      }
     }
   }
+
+  if (!shouldProcess) return state;
 
   switch (action.type) {
     case "START_MATCH": startMatch(state, sessionId); break;
@@ -83,17 +93,5 @@ export async function dispatchAction(sessionId: string, action: { type: string; 
   }
 
   await saveGame(state);
-
-  // Mark this action as processed
-  if (action.actionId) {
-    const { getRedis } = await import("./redis");
-    const redis = getRedis();
-    if (redis) {
-      // Store action ID for phase duration + 30 seconds buffer
-      const phaseTTL = Math.ceil((state.phaseEndsAt ?? Date.now() + 60000 - Date.now()) / 1000) + 30;
-      await redis.set(actionIdempotencyKey, "1", { ex: Math.max(10, phaseTTL) });
-    }
-  }
-
   return state;
 }

@@ -70,15 +70,18 @@ export function handlePlayerDisconnect(state: GameState, playerId: string): void
   player.connected = false;
   state.version++;
 
-  // Only migrate host during lobby phase
-  if (state.phase === "LOBBY") {
-    migrateHost(state, playerId);
-  }
+  // Migrate host in ALL phases, not just LOBBY
+  migrateHost(state, playerId);
 }
 
 function assignRoles(state: GameState) {
-  const shuffled = [...state.players].sort(() => randomInt(0, 2) - 1);
-  // Soft fairness: recently surviving Mafia are not hard-blocked, but random shuffle remains authoritative.
+  // Fisher-Yates shuffle for unbiased randomization
+  const shuffled = [...state.players];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = randomInt(0, i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
   const imposters = shuffled.slice(0, state.config.imposters).map((p) => p.id);
   state.players.forEach((p) => {
     p.role = imposters.includes(p.id) ? "IMPOSTER" : "VILLAGER";
