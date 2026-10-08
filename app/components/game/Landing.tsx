@@ -152,10 +152,10 @@ export function Landing({
                           setAvatar(a);
                           setError("");
                         }}
-                        className={`grid aspect-square place-items-center rounded-xl border text-2xl transition ${
+                        className={`grid aspect-square place-items-center rounded-xl border-2 text-2xl transition ${
                           avatar === a
-                            ? "border-cyan-300/50 bg-cyan-300/10"
-                            : "border-white/8 bg-white/[.025] hover:bg-white/10"
+                            ? "border-cyan-400 bg-cyan-500/20 ring-2 ring-cyan-400/50"
+                            : "border-white/20 bg-white/[.02] hover:border-white/40 hover:bg-white/[.05]"
                         }`}
                       >
                         {avatarGlyph[a]}
