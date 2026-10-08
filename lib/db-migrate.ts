@@ -41,7 +41,7 @@ export async function runMigrations() {
     // Find migration files
     const migrationsDir = path.join(process.cwd(), 'db');
     if (!fs.existsSync(migrationsDir)) {
-      console.log('No migrations directory found');
+      if (process.env.NODE_ENV !== 'production') console.log('No migrations directory found');
       return;
     }
 
@@ -56,14 +56,14 @@ export async function runMigrations() {
 
       const version = parseInt(match[1], 10);
       if (appliedVersions.has(version)) {
-        console.log(`✓ Migration ${version} already applied`);
+        if (process.env.NODE_ENV !== 'production') console.log(`✓ Migration ${version} already applied`);
         continue;
       }
 
       const filepath = path.join(migrationsDir, file);
       const content = fs.readFileSync(filepath, 'utf-8');
 
-      console.log(`Running migration ${version}: ${file}`);
+      if (process.env.NODE_ENV !== 'production') console.log(`Running migration ${version}: ${file}`);
       // Execute migration SQL statements
       const statements = content.split(';').filter(s => s.trim());
       for (const statement of statements) {
@@ -77,12 +77,12 @@ export async function runMigrations() {
         INSERT INTO schema_migrations (version, filename)
         VALUES (${version}, ${file})
       `;
-      console.log(`✓ Migration ${version} completed`);
+      if (process.env.NODE_ENV !== 'production') console.log(`✓ Migration ${version} completed`);
     }
 
-    console.log('All migrations completed successfully');
+    if (process.env.NODE_ENV !== 'production') console.log('All migrations completed successfully');
   } catch (error) {
-    console.error('Migration failed:', error);
+    console.error('[Migration Error]:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }
@@ -93,11 +93,11 @@ let migrationLock = false;
 export async function ensureMigrationsRun() {
   if (migrationLock || process.env.SKIP_MIGRATIONS === 'true') return;
   migrationLock = true;
-  
+
   try {
     await runMigrations();
   } catch (error) {
-    console.error('Failed to run migrations:', error);
+    console.error('[Migration Failed]:', error instanceof Error ? error.message : String(error));
     // Don't crash the server, just log
   }
 }
