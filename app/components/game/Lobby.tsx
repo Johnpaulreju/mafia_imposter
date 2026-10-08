@@ -217,7 +217,10 @@ export function Lobby({
                   <Button variant="ghost" onClick={copy}>
                     <Copy size={15} /> Share
                   </Button>
-                  <Button onClick={() => send("START_MATCH")}>
+                  <Button
+                    onClick={() => send("START_MATCH")}
+                    disabled={state.players.length < 4}
+                  >
                     <Sparkles size={15} /> Start match
                   </Button>
                 </div>
