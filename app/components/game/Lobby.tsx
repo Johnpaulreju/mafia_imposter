@@ -213,29 +213,45 @@ export function Lobby({
                     }
                     className="w-full"
                   />
+                  <p className="mt-2 text-xs text-zinc-500">Number of assassination rounds before the game ends</p>
                 </Setting>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <NumberSetting
-                    label="Assassination"
-                    value={config.assassinationTime}
-                    onChange={(v) => set("assassinationTime", v)}
-                  />
-                  <NumberSetting
-                    label="Discussion"
-                    value={config.discussionTime}
-                    onChange={(v) => set("discussionTime", v)}
-                  />
-                  <NumberSetting
-                    label="Voting"
-                    value={config.votingTime}
-                    onChange={(v) => set("votingTime", v)}
-                  />
-                  <NumberSetting
-                    label="Max players"
-                    value={config.maxPlayers}
-                    onChange={(v) => set("maxPlayers", v)}
-                  />
+                <div className="space-y-3 rounded-xl bg-white/[.02] p-3">
+                  <div className="text-xs uppercase tracking-[.2em] text-zinc-600">Timing (seconds)</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <NumberSetting
+                        label="Assassination"
+                        value={config.assassinationTime}
+                        onChange={(v) => set("assassinationTime", v)}
+                      />
+                      <p className="mt-1 text-xs text-zinc-500">Time for Mafia to eliminate and players to complete tasks</p>
+                    </div>
+                    <div>
+                      <NumberSetting
+                        label="Discussion"
+                        value={config.discussionTime}
+                        onChange={(v) => set("discussionTime", v)}
+                      />
+                      <p className="mt-1 text-xs text-zinc-500">Time for players to discuss who is suspicious</p>
+                    </div>
+                    <div>
+                      <NumberSetting
+                        label="Voting"
+                        value={config.votingTime}
+                        onChange={(v) => set("votingTime", v)}
+                      />
+                      <p className="mt-1 text-xs text-zinc-500">Time for players to vote out the suspicious person</p>
+                    </div>
+                    <div>
+                      <NumberSetting
+                        label="Max players"
+                        value={config.maxPlayers}
+                        onChange={(v) => set("maxPlayers", v)}
+                      />
+                      <p className="mt-1 text-xs text-zinc-500">Maximum players allowed in this room</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -268,19 +284,42 @@ export function Lobby({
                 )}
               </div>
             ) : (
-              <div className="space-y-4 text-sm text-zinc-400">
-                <div className="rounded-2xl border border-white/8 bg-white/[.025] p-4">
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-white/8 bg-white/[.025] p-4 text-sm text-zinc-400">
                   The host is preparing the match. Your role will be assigned
                   privately when the game starts.
                 </div>
                 <div className="rounded-2xl border border-white/8 bg-white/[.025] p-4">
-                  <span className="text-white">
+                  <span className="text-white text-sm">
                     {state.config.playMode === "IN_PERSON"
                       ? "🏠 In person"
                       : "🌐 Remote"}
                   </span>{" "}
-                  · {state.config.rounds} rounds ·{" "}
-                  {state.config.mafiaMode.toLowerCase()} Mafia
+                  <span className="text-sm text-zinc-500">
+                    · {state.config.rounds} rounds ·{" "}
+                    {state.config.mafiaMode.toLowerCase()} Mafia
+                  </span>
+                </div>
+
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4">
+                  <div className="text-xs uppercase tracking-[.2em] text-cyan-300 font-semibold mb-3">How to Play</div>
+                  <div className="space-y-2 text-xs text-cyan-200/80">
+                    <div>
+                      <span className="font-semibold text-cyan-200">Your Role:</span> You'll be assigned Villager or Mafia (Imposter)
+                    </div>
+                    <div>
+                      <span className="font-semibold text-cyan-200">Assassination Phase:</span> Mafia eliminates someone. Villagers complete mini-games to help.
+                    </div>
+                    <div>
+                      <span className="font-semibold text-cyan-200">Discussion Phase:</span> Everyone talks to find the Mafia.
+                    </div>
+                    <div>
+                      <span className="font-semibold text-cyan-200">Voting Phase:</span> Vote out who you think is Mafia.
+                    </div>
+                    <div className="pt-2 border-t border-cyan-400/20">
+                      <span className="font-semibold text-cyan-200">Win Condition:</span> Villagers win if all Mafia are eliminated. Mafia wins if they equal the villagers.
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
