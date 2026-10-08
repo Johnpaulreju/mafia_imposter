@@ -100,19 +100,19 @@ export function Landing({
             className="glass glow rounded-[28px] p-6 sm:p-8"
           >
             <div className="mb-7">
-              <div className="text-xs uppercase tracking-[.2em] text-zinc-500">
-                {mode === "welcome"
-                  ? "Step 1 of 3"
-                  : mode === "choice"
-                    ? "Step 2 of 3"
-                    : "Step 3 of 3"}
-              </div>
+              {(mode === "welcome" || mode === "choice") && (
+                <div className="text-xs uppercase tracking-[.2em] text-zinc-500">
+                  {mode === "welcome" ? "Step 1 of 2" : "Step 2 of 2"}
+                </div>
+              )}
               <h2 className="mt-2 text-2xl font-bold">
                 {mode === "welcome"
                   ? "Who are you?"
                   : mode === "choice"
                     ? "Host or join?"
-                    : "Join the room"}
+                    : mode === "host"
+                      ? "Create your room"
+                      : "Enter room code"}
               </h2>
             </div>
 
