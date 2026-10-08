@@ -124,7 +124,26 @@ export default function Home() {
   }
 
   // Show lobby
-  if (mode === "lobby" && state) {
+  if (mode === "lobby") {
+    if (!state) {
+      // WebSocket connecting, show loading
+      return (
+        <main className="min-h-screen bg-grid px-4 py-5">
+          <div className="mx-auto max-w-2xl">
+            <div className="mt-32 text-center">
+              <div className="text-sm uppercase tracking-[.2em] text-zinc-600">Connecting...</div>
+              <h2 className="mt-4 text-3xl font-bold">Room ready</h2>
+              <p className="mt-3 text-zinc-500">Waiting for players to join</p>
+              {roomCode && (
+                <div className="mt-6 rounded-xl bg-white/[.03] px-6 py-4 font-mono text-lg text-cyan-300">
+                  {roomCode}
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      );
+    }
     return (
       <Lobby
         state={state}
