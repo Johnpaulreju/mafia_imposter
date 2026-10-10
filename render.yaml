@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: mafia-imposter-realtime
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm typecheck
+    startCommand: pnpm start:realtime
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - server/**
+        - lib/**
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: KV_REST_API_URL
+        sync: false
+      - key: KV_REST_API_TOKEN
+        sync: false
+      - key: STORY_AI_DISABLED
+        value: "true"

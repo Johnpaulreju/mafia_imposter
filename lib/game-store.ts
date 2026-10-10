@@ -35,8 +35,15 @@ export async function saveSession(session: SessionRecord) {
 
 export async function getSession(sessionId: string) {
   const redis = getRedis();
-  if (redis) return await redis.get<SessionRecord>(sessionKey(sessionId));
-  return memorySessions.get(sessionId) ?? null;
+  const session = redis
+    ? await redis.get<SessionRecord>(sessionKey(sessionId))
+    : memorySessions.get(sessionId) ?? null;
+  if (!session) return null;
+  if (session.expiresAt <= Date.now()) {
+    await deleteSession(sessionId);
+    return null;
+  }
+  return session;
 }
 
 export async function deleteSession(sessionId: string) {

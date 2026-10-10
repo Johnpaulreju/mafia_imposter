@@ -250,7 +250,7 @@ export function completeTask(
 
 export async function tickRoom(roomId: string) {
   const state = await getGame(roomId); if (!state) return null;
-  if (!state.phaseEndsAt || Date.now() < state.phaseEndsAt) return state;
+  if (!state.phaseEndsAt || Date.now() < state.phaseEndsAt) return null;
   const advanced = await advancePhase(state);
 
   // Persist incrementally at key transitions
@@ -274,5 +274,5 @@ export async function tickRoom(roomId: string) {
     }
   }
 
-  return state;
+  return advanced ? state : null;
 }

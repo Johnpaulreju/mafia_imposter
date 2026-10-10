@@ -2,13 +2,16 @@
   "name": "mafia-night",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "tsx --env-file-if-exists=.env.local server.mjs",
     "dev:next": "next dev",
     "build": "next build",
-    "start": "tsx --env-file-if-exists=.env server.mjs",
+    "start": "next start",
     "start:web": "next start",
-    "start:realtime": "tsx server/realtime.ts",
+    "start:realtime": "tsx --env-file-if-exists=.env server/realtime.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",

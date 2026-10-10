@@ -61,6 +61,7 @@ dist-ssr/
 
 # Optional eslint cache
 .eslintcache/
+*.tsbuildinfo
 
 # Temporary files
 *.tmp

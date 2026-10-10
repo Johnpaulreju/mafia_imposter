@@ -35,7 +35,9 @@ export default function Home() {
 
   // API helper
   async function api(path: string, body: unknown) {
-    const r = await fetch(path, {
+    const configuredUrl = process.env.NEXT_PUBLIC_GAME_SERVER_URL?.trim().replace(/\/$/, "");
+    const requestPath = configuredUrl ? `${configuredUrl}${path}` : `/game-api${path}`;
+    const r = await fetch(requestPath, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
@@ -51,7 +53,7 @@ export default function Home() {
     if (!name.trim() || !avatar)
       return setError("Name and avatar required.");
     try {
-      const j = await api("/api/rooms", {
+      const j = await api("/rooms", {
         action: "create",
         name: name.trim(),
         avatarId: avatar,
@@ -74,7 +76,7 @@ export default function Home() {
     if (roomCode.trim().length < 4)
       return setError("Enter the room code.");
     try {
-      const j = await api("/api/rooms", {
+      const j = await api("/rooms", {
         action: "join",
         name: name.trim(),
         avatarId: avatar,

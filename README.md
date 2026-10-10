@@ -6,18 +6,20 @@ Production-oriented starter for the Mafia social-deduction game we designed toge
 
 - Next.js 16.3.8 + React 19.3
 - Tailwind CSS 4.3
-- Vercel Functions + WebSockets (public beta)
+- Vercel for the Next.js frontend
+- Render Web Service + `ws` for the authoritative realtime game server
 - Upstash Redis for live state/session state
 - Neon/PostgreSQL for durable match history
 - Provider-agnostic OpenAI-compatible AI endpoint for story generation
 - TypeScript
 
-Vercel currently supports WebSocket connections from Functions in public beta; connections are pinned to a Function and durable shared state should live in Redis. See the official Vercel WebSocket guidance before production launch. citehttps://vercel.com/changelog/websocket-support-is-now-in-public-beta
+The browser connects directly to the Render service for room HTTP requests and
+WebSocket game traffic. See `DEPLOYMENT.md` for the exact deployment sequence.
 
 ## 1. Install
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env.local
 ```
 
@@ -26,13 +28,13 @@ Fill in `.env.local` with your Neon, Upstash and AI values.
 ## 2. Database
 
 ```bash
-npm run db:migrate
+pnpm db:migrate
 ```
 
 ## 3. Run locally
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open http://localhost:3000.
@@ -42,8 +44,12 @@ Open http://localhost:3000.
 Required for shared persistence:
 
 - `DATABASE_URL` or `POSTGRES_URL`
-- `REDIS_URL` + `KV_REST_API_TOKEN`, OR `KV_REST_API_URL` + `KV_REST_API_TOKEN`
-- `SESSION_SECRET`
+- `KV_REST_API_URL` + `KV_REST_API_TOKEN`
+
+Deployment routing:
+
+- `NEXT_PUBLIC_GAME_SERVER_URL` on Vercel, set to the Render HTTPS origin
+- `ALLOWED_ORIGINS` on Render, set to the exact Vercel origin
 
 AI story generation:
 
@@ -105,22 +111,20 @@ Implemented:
 - Neon/Postgres migration schema
 - reconnect snapshot architecture
 
-The next engineering pass should add the six fully playable mini-games, persistent match finalization into PostgreSQL, host migration, fairness-weighted role history, audio/haptics, rate limiting, action idempotency, and production-grade WebSocket deployment tests.
+The next engineering pass should add the six fully playable mini-games, reconcile PostgreSQL match-history writes with the migration schema, add fairness-weighted role history, audio/haptics, distributed coordination for horizontal scaling, and larger production WebSocket load tests.
 
 ## Suggested production deployment order
 
-1. Create Vercel project and connect GitHub.
-2. Create Upstash Redis integration in Vercel.
-3. Create Neon PostgreSQL database.
-4. Add environment variables.
-5. Run migration against Neon.
-6. Deploy Preview.
-7. Test 4–25 browser sessions.
-8. Test refresh/disconnect/reconnect in every phase.
-9. Test host closing the browser and host migration.
-10. Test AI failure and verify template fallback.
-11. Test room isolation with multiple simultaneous rooms.
-12. Only then move to production.
+1. Push this single repository to GitHub.
+2. Create Upstash Redis and copy its REST URL and write token.
+3. Deploy `render.yaml` as a Render Blueprint.
+4. Set Render `ALLOWED_ORIGINS` to the exact Vercel production origin.
+5. Set Vercel `NEXT_PUBLIC_GAME_SERVER_URL` to the Render HTTPS origin.
+6. Redeploy Vercel and test 4–25 browser sessions.
+7. Test refresh/disconnect/reconnect in every phase.
+8. Test host closing the browser and host migration.
+9. Test AI failure and verify template fallback.
+10. Test room isolation with multiple simultaneous rooms.
 
 
 ## Environment mapping for the Redis variables you showed
