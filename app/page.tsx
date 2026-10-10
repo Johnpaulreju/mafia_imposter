@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AVATARS, DEFAULT_CONFIG } from "@/lib/constants";
 import { actionId } from "@/lib/id";
 import { getWSClient } from "@/lib/ws-client";
@@ -27,10 +27,13 @@ export default function Home() {
 
   // Restore session from localStorage and URL params
   useEffect(() => {
-    const s = localStorage.getItem("mafia_session");
-    if (s) setSessionId(s);
-    const r = new URLSearchParams(location.search).get("room");
-    if (r) setRoomCode(r.toUpperCase());
+    const frame = window.requestAnimationFrame(() => {
+      const savedSession = localStorage.getItem("mafia_session");
+      if (savedSession) setSessionId(savedSession);
+      const requestedRoom = new URLSearchParams(location.search).get("room");
+      if (requestedRoom) setRoomCode(requestedRoom.toUpperCase());
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   // API helper
@@ -109,10 +112,10 @@ export default function Home() {
   }, [sessionId]);
 
   // Send action via WebSocket
-  const send = (type: string, payload?: Record<string, unknown>) => {
+  const send = useCallback((type: string, payload?: Record<string, unknown>) => {
     const client = getWSClient();
     client.send({ type, actionId: actionId(), payload });
-  };
+  }, []);
 
   // Leave room
   const leaveRoom = () => {
@@ -178,7 +181,6 @@ export default function Home() {
         config={config}
         setConfig={setConfig}
         error={error}
-        setError={setError}
         roomCode={roomCode}
         onLeave={leaveRoom}
       />
@@ -187,7 +189,7 @@ export default function Home() {
 
   // Show game
   if (mode === "game" && state) {
-    return <Game state={state} send={send} />;
+    return <Game state={state} send={send} onLeave={leaveRoom} />;
   }
 
   // Show landing page

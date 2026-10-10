@@ -14,9 +14,11 @@ import type { ClientSnapshot } from "@/lib/types";
 export function Game({
   state,
   send,
+  onLeave,
 }: {
   state: ClientSnapshot;
   send: (t: string, p?: Record<string, unknown>) => void;
+  onLeave: () => void;
 }) {
   const me = state.me;
   const [now, setNow] = useState(state.serverNow);
@@ -39,7 +41,9 @@ export function Game({
     ? state.players.find((p) => p.id === state.eliminatedThisRound)
     : undefined;
 
-  if (state.phase === "GAME_OVER") return <GameOver state={state} />;
+  if (state.phase === "GAME_OVER") {
+    return <GameOver state={state} send={send} onLeave={onLeave} />;
+  }
 
   const task = me ? state.tasks[me.id] : undefined;
   const isSpectator = !!me && me.status !== "ALIVE";

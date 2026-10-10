@@ -102,10 +102,13 @@ function chooseTask(playerId: string, round: number): TaskGame {
 export function startMatch(state: GameState, hostSessionId: string) {
   const host = state.players.find((p) => p.sessionId === hostSessionId);
   if (!host?.isHost) throw new Error("Only the host can start");
+  if (!["LOBBY", "GAME_OVER"].includes(state.phase)) throw new Error("A match is already in progress");
   if (state.players.length < 4) throw new Error("At least 4 players are required");
   if (state.players.filter((p) => p.connected).length < 4) throw new Error("At least 4 connected players are required");
   if (state.config.imposters >= Math.ceil(state.players.length / 2)) throw new Error("Choose fewer imposters for this player count");
-  state.matchId = id("match"); state.matchNumber += 1; state.round = 0; state.winner = null; state.eliminatedThisRound = undefined; state.lastEliminationRole = undefined;
+  state.matchId = id("match"); state.matchNumber += 1; state.round = 0; state.winner = null;
+  state.currentVictimId = undefined; state.eliminatedThisRound = undefined; state.lastEliminationRole = undefined;
+  state.story = undefined; state.tasks = {}; state.votes = {}; state.tieCandidates = [];
   assignRoles(state); startCountdown(state); return state;
 }
 
