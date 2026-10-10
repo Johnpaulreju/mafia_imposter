@@ -8,7 +8,7 @@ export const DEFAULT_CONFIG: MatchConfig = {
   rounds: 4,
   assassinationTime: 20,
   taskTime: 20,
-  discussionTime: 30,
+  discussionTime: 20,
   votingTime: 30,
   votesPerPlayer: 1,
   allowVoteChange: true,
@@ -17,6 +17,10 @@ export const DEFAULT_CONFIG: MatchConfig = {
   storyEnabled: true,
   storyStyle: "MYSTERY",
 };
+
+// The discovery is intentionally a short, separate beat before discussion.
+// This gives the narrator enough time to read without stealing debate time.
+export const STORY_REVEAL_SECONDS = 10;
 
 export const TASK_GAMES: TaskGame[] = [
   "POP_RUSH",

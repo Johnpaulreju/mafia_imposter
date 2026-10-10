@@ -35,21 +35,18 @@ export function publicSnapshot(state: GameState, sessionId: string): ClientSnaps
     }
   }
 
-  // Filter story: Only include if player is authorized to see it
+  // The victim becomes a silent observer. In-person games give the story to one
+  // random living narrator; remote games show it to every living player.
   let safeStory = undefined;
   if (state.story && state.phase !== "GAME_OVER") {
-    const isVictim = state.story.victimId === me?.id;
-    const isKiller = state.currentVictimId && me?.role === "IMPOSTER"; // Simplified: assume imposter was killer
     const isAlive = me?.status === "ALIVE";
 
-    if (!isVictim && !isKiller && isAlive) {
+    if (isAlive) {
       if (state.config.playMode === "IN_PERSON") {
-        // IN_PERSON: Only narrator sees story
         if (state.story.readerId === me?.id) {
           safeStory = state.story;
         }
       } else {
-        // REMOTE: All eligible living players see story
         safeStory = state.story;
       }
     }

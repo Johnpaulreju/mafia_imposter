@@ -5,7 +5,9 @@ import { Crown, Sparkles } from "lucide-react";
 import { Avatar } from "@/app/components/ui";
 import { TaskCard } from "./TaskCard";
 import { DeathReveal } from "./DeathReveal";
+import { Discussion } from "./Discussion";
 import { GameOver } from "./GameOver";
+import { Spectator } from "./Spectator";
 import { phaseTitle } from "./utils";
 import type { ClientSnapshot } from "@/lib/types";
 
@@ -17,7 +19,9 @@ export function Game({
   send: (t: string, p?: Record<string, unknown>) => void;
 }) {
   const me = state.me;
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(state.serverNow);
+  const [selection, setSelection] = useState({ phase: "", round: 0, id: "" });
+  const [taskCompletion, setTaskCompletion] = useState({ round: 0, done: false });
 
   useEffect(() => {
     const i = setInterval(() => setNow(Date.now()), 250);
@@ -35,12 +39,18 @@ export function Game({
     ? state.players.find((p) => p.id === state.eliminatedThisRound)
     : undefined;
 
-  const [selected, setSelected] = useState("");
-  const [taskDone, setTaskDone] = useState(false);
-
   if (state.phase === "GAME_OVER") return <GameOver state={state} />;
 
   const task = me ? state.tasks[me.id] : undefined;
+  const isSpectator = !!me && me.status !== "ALIVE";
+  const selected =
+    selection.phase === state.phase && selection.round === state.round
+      ? selection.id
+      : "";
+  const taskDone =
+    taskCompletion.round === state.round && taskCompletion.done;
+  const selectPlayer = (id: string) =>
+    setSelection({ phase: state.phase, round: state.round, id });
 
   return (
     <main className="min-h-screen bg-grid px-4 py-5">
@@ -59,6 +69,10 @@ export function Game({
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
           <section className="glass min-h-[70vh] rounded-[30px] p-6 sm:p-10">
+            {isSpectator && state.phase !== "DEATH_REVEAL" ? (
+              <Spectator state={state} />
+            ) : (
+              <>
             {state.phase === "COUNTDOWN" && (
               <div className="grid h-[60vh] place-items-center text-center">
                 <div>
@@ -134,7 +148,7 @@ export function Game({
                         <button
                           key={p.id}
                           onClick={() => {
-                            setSelected(p.id);
+                            selectPlayer(p.id);
                             send("SELECT_TARGET", { targetId: p.id });
                           }}
                           className={`rounded-2xl border p-4 text-left transition ${
@@ -158,7 +172,7 @@ export function Game({
                     task={task}
                     done={taskDone || !!task?.completed}
                     onDone={(answer, timing) => {
-                      setTaskDone(true);
+                      setTaskCompletion({ round: state.round, done: true });
                       send("COMPLETE_TASK", {
                         answer,
                         timing,
@@ -175,21 +189,11 @@ export function Game({
             )}
 
             {state.phase === "DEATH_REVEAL" && (
-              <DeathReveal state={state} me={me} />
+              <DeathReveal state={state} me={me} seconds={seconds} />
             )}
 
             {state.phase === "DISCUSSION" && (
-              <div className="grid h-[60vh] place-items-center text-center">
-                <div>
-                  <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-amber-300/10 text-amber-200">
-                    🕵️
-                  </div>
-                  <h2 className="mt-6 text-4xl font-black">Discuss.</h2>
-                  <p className="mt-3 text-zinc-500">
-                    Someone is gone. Decide who you trust.
-                  </p>
-                </div>
-              </div>
+              <Discussion state={state} seconds={seconds} />
             )}
 
             {(state.phase === "VOTING" || state.phase === "TIE_BREAK") && (
@@ -216,7 +220,7 @@ export function Game({
                       <button
                         key={p.id}
                         onClick={() => {
-                          setSelected(p.id);
+                          selectPlayer(p.id);
                           send("CAST_VOTE", { targetId: p.id });
                         }}
                         className={`rounded-2xl border p-4 text-left ${
@@ -233,7 +237,7 @@ export function Game({
                 </div>
                 <button
                   onClick={() => {
-                    setSelected("");
+                    selectPlayer("");
                     send("CAST_VOTE", { targetId: null });
                   }}
                   className="mt-5 text-xs text-zinc-600 hover:text-zinc-300"
@@ -280,6 +284,8 @@ export function Game({
                   </p>
                 </div>
               </div>
+            )}
+              </>
             )}
           </section>
 

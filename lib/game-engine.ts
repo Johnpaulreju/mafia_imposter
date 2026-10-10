@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { DEFAULT_CONFIG, TASK_GAMES } from "./constants";
+import { DEFAULT_CONFIG, STORY_REVEAL_SECONDS, TASK_GAMES } from "./constants";
 import { getGame, saveGame } from "./game-store";
 import { id, roomCode } from "./id";
 import { generateStory } from "./story";
@@ -12,6 +12,9 @@ export function validateConfig(config: Partial<MatchConfig>): MatchConfig {
   merged.maxPlayers = Math.min(25, Math.max(4, Number(merged.maxPlayers) || DEFAULT_CONFIG.maxPlayers));
   merged.rounds = Math.min(8, Math.max(1, Number(merged.rounds) || 4));
   merged.imposters = Math.min(3, Math.max(1, Number(merged.imposters) || 1));
+  merged.assassinationTime = Math.min(120, Math.max(10, Number(merged.assassinationTime) || DEFAULT_CONFIG.assassinationTime));
+  merged.discussionTime = Math.min(120, Math.max(10, Number(merged.discussionTime) || DEFAULT_CONFIG.discussionTime));
+  merged.votingTime = Math.min(120, Math.max(10, Number(merged.votingTime) || DEFAULT_CONFIG.votingTime));
   if (merged.imposters >= merged.maxPlayers) merged.imposters = 1;
   return merged;
 }
@@ -130,7 +133,7 @@ export async function advancePhase(state: GameState) {
 
 function startRound(state: GameState) {
   state.round += 1; state.phase = "ASSASSINATION"; state.phaseStartedAt = Date.now(); state.phaseEndsAt = Date.now() + state.config.assassinationTime * 1000;
-  state.currentVictimId = undefined; state.eliminatedThisRound = undefined; state.votes = {}; state.tieCandidates = [];
+  state.currentVictimId = undefined; state.eliminatedThisRound = undefined; state.story = undefined; state.votes = {}; state.tieCandidates = [];
   state.tasks = {};
   const now = Date.now();
   for (const p of state.players.filter((p) => p.status === "ALIVE")) {
@@ -155,15 +158,23 @@ export async function selectTarget(state: GameState, sessionId: string, targetId
 async function finishAssassination(state: GameState) {
   const victim = state.currentVictimId ? state.players.find((p) => p.id === state.currentVictimId) : undefined;
   if (victim) { victim.status = "DEAD"; state.eliminatedThisRound = victim.id; }
-  state.phase = "DEATH_REVEAL"; state.phaseStartedAt = Date.now(); state.phaseEndsAt = Date.now() + 5000;
-  state.version++;
+  state.story = undefined;
+
+  // Build the story before starting the reveal clock. The previous flow started
+  // the timer first, so an AI request could consume nearly the entire reveal.
   if (victim && state.config.storyEnabled) {
-    const eligible = state.players.filter((p) => p.status === "ALIVE" && p.role !== "IMPOSTER");
+    const eligible = state.players.filter((p) => p.status === "ALIVE");
     const witness = eligible[Math.floor(Math.random() * Math.max(1, eligible.length))];
     const story = await generateStory({ victim: victim.name, witness: witness?.name ?? "A witness", allowedNames: state.players.map((p) => p.name), style: state.config.storyStyle });
     state.story = { id: story.id, victimId: victim.id, readerId: state.config.playMode === "IN_PERSON" ? witness?.id : undefined, text: story.text, style: state.config.storyStyle, ready: true };
-    state.version++;
   }
+
+  const revealSeconds = victim ? STORY_REVEAL_SECONDS : 5;
+  const revealStartedAt = Date.now();
+  state.phase = "DEATH_REVEAL";
+  state.phaseStartedAt = revealStartedAt;
+  state.phaseEndsAt = revealStartedAt + revealSeconds * 1000;
+  state.version++;
   return true;
 }
 
